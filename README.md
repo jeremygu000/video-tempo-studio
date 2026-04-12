@@ -86,14 +86,16 @@ npm run worker:pm2:status
 如果你需要合盖前后让任务持续运行，可在单独终端执行：
 
 ```bash
-caffeinate -dimsu
+npm run mac:awake
 ```
+
+合盖场景建议优先使用 `mac:awake`（更强的防睡眠策略）。
 
 - 停止方式：`Ctrl + C`
 - 若只希望“服务运行但屏幕可熄灭”，可用：
 
 ```bash
-caffeinate -is
+npm run mac:awake:screen-off
 ```
 
 ## 常用命令

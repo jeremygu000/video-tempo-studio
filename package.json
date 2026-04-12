@@ -33,6 +33,8 @@
     "pm2:stop:all": "npm run worker:pm2:stop && npm run web:pm2:stop",
     "pm2:restart:all": "npm run worker:pm2:restart && npm run web:pm2:restart",
     "pm2:delete:all": "npm run worker:pm2:delete && npm run web:pm2:delete",
+    "mac:awake": "caffeinate -dimsu",
+    "mac:awake:screen-off": "caffeinate -is",
     "video:run": "npm run video:run -w backend",
     "test:python": "npm run test:python -w backend",
     "test:web": "npm run test:web -w web",
