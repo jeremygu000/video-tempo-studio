@@ -1,0 +1,31 @@
+# Node / Next.js
+node_modules/
+web/node_modules/
+web/.next/
+web/out/
+web/.vercel/
+*.tsbuildinfo
+
+# Env / local config
+.env
+.env.*
+web/.env
+web/.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Runtime logs
+*.log
+logs/
+/logs/
+backend/logs/
+
+# SQLite runtime files (keep schema/init scripts)
+backend/db/*.db
+backend/db/*.db-shm
+backend/db/*.db-wal
+
+# OS files
+.DS_Store

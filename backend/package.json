@@ -1,0 +1,12 @@
+{
+  "name": "@video-tempo-studio/backend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "db:init": "python3 db/init_db.py",
+    "worker:once": "python3 apps/worker.py",
+    "worker:watch": "python3 apps/worker.py --watch --poll-interval 30",
+    "video:run": "python3 apps/video_processor.py",
+    "test:python": "PYTHONPATH=. python3 -m unittest discover -s tests -p 'test_*.py' -v"
+  }
+}

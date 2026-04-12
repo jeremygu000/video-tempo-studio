@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../../backend/db/biansu.db"
+}
+
+model watch_targets {
+  id         Int    @id @default(autoincrement())
+  directory  String @unique
+  enabled    Int    @default(1)
+  created_at String @default(dbgenerated("(datetime('now'))"))
+
+  jobs jobs[]
+}
+
+model runs {
+  id            Int     @id @default(autoincrement())
+  job_id        Int
+  status        String
+  progress_pct  Int     @default(0)
+  progress_text String?
+  started_at    String?
+  finished_at   String?
+  duration_ms   Int?
+  log_text      String?
+  error_message String?
+  error_trace   String?
+  log_file_path String?
+  created_at    String  @default(dbgenerated("(datetime('now'))"))
+
+  jobs jobs @relation(fields: [job_id], references: [id], onDelete: Cascade)
+}
+
+model jobs {
+  id         Int    @id @default(autoincrement())
+  target_id  Int
+  file_path  String
+  status     String @default("pending")
+  created_at String @default(dbgenerated("(datetime('now'))"))
+  started_at String?
+  finished_at String?
+
+  watch_targets watch_targets @relation(fields: [target_id], references: [id], onDelete: Cascade)
+  runs runs[]
+
+  @@unique([target_id, file_path])
+}
