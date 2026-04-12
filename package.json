@@ -15,9 +15,20 @@
     "db:init": "npm run db:init -w backend",
     "worker:once": "npm run worker:once -w backend",
     "worker:watch": "npm run worker:watch -w backend",
+    "worker:pm2:start": "npx pm2 start npm --name video-worker -- run worker:watch",
+    "worker:pm2:stop": "npx pm2 stop video-worker",
+    "worker:pm2:restart": "npx pm2 restart video-worker",
+    "worker:pm2:delete": "npx pm2 delete video-worker",
+    "worker:pm2:logs": "npx pm2 logs video-worker",
+    "worker:pm2:status": "npx pm2 status",
+    "worker:pm2:save": "npx pm2 save",
+    "worker:pm2:startup": "npx pm2 startup",
     "video:run": "npm run video:run -w backend",
     "test:python": "npm run test:python -w backend",
     "test:web": "npm run test:web -w web",
     "test:all": "npm run test:python && npm run test:web"
+  },
+  "devDependencies": {
+    "pm2": "^6.0.14"
   }
 }
