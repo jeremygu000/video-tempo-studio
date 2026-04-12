@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Node deps
+        run: npm ci
+
+      - name: Install Python deps
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate -w web
+
+      - name: Run Python tests
+        run: npm run test:python
+
+      - name: Run Web tests
+        run: npm run test:web
