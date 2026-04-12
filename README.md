@@ -47,11 +47,55 @@ npm run dev
 npm run worker:watch
 ```
 
+## PM2 守护运行（推荐）
+后端长期运行建议使用 `pm2`，避免进程意外退出。
+
+```bash
+npm run worker:pm2:start
+npm run worker:pm2:status
+npm run worker:pm2:logs
+```
+
+- `worker:pm2:start` 已内置单实例收敛（确保只有 1 个 `video-worker`）
+- 手动收敛命令：`npm run worker:pm2:ensure`
+
+前端也可用 pm2 运行（生产模式）：
+
+```bash
+npm run build -w web
+npm run web:pm2:start
+```
+
+一键启动前后端：
+
+```bash
+npm run pm2:start:all
+```
+
+推荐日常运维命令：
+
+```bash
+npm run pm2:start:all    # 先 build 前端，再启动前后端
+npm run pm2:stop:all     # 一键停止前后端
+npm run pm2:restart:all  # 一键重启前后端
+npm run pm2:delete:all   # 清空 pm2 中的前后端进程定义
+npm run worker:pm2:status
+```
+
 ## 常用命令
 ```bash
 npm run dev
 npm run worker:watch
 npm run worker:once
+npm run worker:pm2:start
+npm run worker:pm2:status
+npm run worker:pm2:logs
+npm run worker:pm2:ensure
+npm run web:pm2:start
+npm run pm2:start:all
+npm run pm2:stop:all
+npm run pm2:restart:all
+npm run pm2:delete:all
 npm run db:init
 npm run test:python
 npm run test:web
@@ -67,6 +111,15 @@ npm run test:all
 已移除 macOS 绝对路径依赖，Windows 可运行。请确认：
 - 已安装 ffmpeg/ffprobe
 - 已执行 `npm run db:init`
+
+## 常见问题
+- `http://localhost:3000` 打不开且 `video-web` 报错找不到 `.next`：
+  - 先执行 `npm run build -w web`，再 `npm run web:pm2:restart`
+- `pm2 logs` 看不到 worker 周期日志：
+  - 已使用 `python3 -u` 无缓冲运行，重启后会看到 `Watch cycle stats`
+- `/api/jobs` 或 `/api/runs` 报 `Unable to open the database file`：
+  - 确认已执行 `npm run db:init`
+  - 重启 web 进程使 Prisma 重新加载路径配置
 
 ## License
 Apache License 2.0，见 [LICENSE](./LICENSE)。
