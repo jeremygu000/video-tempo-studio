@@ -82,6 +82,20 @@ npm run pm2:delete:all   # 清空 pm2 中的前后端进程定义
 npm run worker:pm2:status
 ```
 
+## 防止睡眠（macOS）
+如果你需要合盖前后让任务持续运行，可在单独终端执行：
+
+```bash
+caffeinate -dimsu
+```
+
+- 停止方式：`Ctrl + C`
+- 若只希望“服务运行但屏幕可熄灭”，可用：
+
+```bash
+caffeinate -is
+```
+
 ## 常用命令
 ```bash
 npm run dev
