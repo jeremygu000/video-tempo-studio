@@ -30,6 +30,7 @@
     "web:pm2:delete": "npx pm2 delete video-web",
     "web:pm2:logs": "npx pm2 logs video-web",
     "pm2:start:all": "npm run build -w web && npm run worker:pm2:start && npm run web:pm2:start",
+    "pm2:rebuild:restart:all": "npm run build -w web && npm run pm2:restart:all",
     "pm2:stop:all": "npm run worker:pm2:stop && npm run web:pm2:stop",
     "pm2:restart:all": "npm run worker:pm2:restart && npm run web:pm2:restart",
     "pm2:delete:all": "npm run worker:pm2:delete && npm run web:pm2:delete",

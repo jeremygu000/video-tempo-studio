@@ -27,27 +27,51 @@ type Run = {
   };
 };
 
+type RunsResponse = {
+  runs: Run[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+const RUNS_PAGE_SIZE = 20;
+
 export default function HomePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
+  const [runsPage, setRunsPage] = useState(1);
+  const [runsTotal, setRunsTotal] = useState(0);
+  const [runsTotalPages, setRunsTotalPages] = useState(1);
   const [busyJobId, setBusyJobId] = useState<number | null>(null);
   const [retryingJobId, setRetryingJobId] = useState<number | null>(null);
 
-  async function refresh() {
-    const [jobsResp, runsResp] = await Promise.all([fetch("/api/jobs"), fetch("/api/runs")]);
+  async function refresh(targetPage?: number) {
+    const page = targetPage ?? runsPage;
+    const [jobsResp, runsResp] = await Promise.all([
+      fetch("/api/jobs"),
+      fetch(`/api/runs?page=${page}&pageSize=${RUNS_PAGE_SIZE}`),
+    ]);
     const jobsData = (await jobsResp.json()) as { jobs: Job[] };
-    const runsData = (await runsResp.json()) as { runs: Run[] };
+    const runsData = (await runsResp.json()) as RunsResponse;
     setJobs(jobsData.jobs ?? []);
     setRuns(runsData.runs ?? []);
+    if (runsData.pagination) {
+      setRunsPage(runsData.pagination.page);
+      setRunsTotal(runsData.pagination.total);
+      setRunsTotalPages(runsData.pagination.totalPages);
+    }
   }
 
   useEffect(() => {
-    void refresh();
+    void refresh(runsPage);
     const timer = setInterval(() => {
-      void refresh();
+      void refresh(runsPage);
     }, 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [runsPage]);
 
   async function onToggleJob(job: Job) {
     await fetch(`/api/jobs/${job.id}`, {
@@ -76,6 +100,11 @@ export default function HomePage() {
     } finally {
       setRetryingJobId(null);
     }
+  }
+
+  async function onRunsPageChange(nextPage: number) {
+    if (nextPage < 1 || nextPage > runsTotalPages || nextPage === runsPage) return;
+    await refresh(nextPage);
   }
 
   function formatRunStatus(status: Run["status"]) {
@@ -217,6 +246,17 @@ export default function HomePage() {
 
         <section className="panel card">
           <h3>运行记录</h3>
+          <div className="actions" style={{ marginBottom: 12, alignItems: "center" }}>
+            <span>
+              第 {runsPage} / {runsTotalPages} 页，共 {runsTotal} 条
+            </span>
+            <button disabled={runsPage <= 1} onClick={() => void onRunsPageChange(runsPage - 1)}>
+              上一页
+            </button>
+            <button disabled={runsPage >= runsTotalPages} onClick={() => void onRunsPageChange(runsPage + 1)}>
+              下一页
+            </button>
+          </div>
           <table className="data-table">
             <thead>
               <tr>
