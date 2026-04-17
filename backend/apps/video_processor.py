@@ -164,9 +164,26 @@ def get_recent_video_files(directory, num_files):
     return recent_video_files[:num_files]
 
 
+def resolve_ffprobe_bin():
+    env_bin = os.environ.get("FFPROBE_BIN", "").strip()
+    if env_bin:
+        return env_bin
+
+    detected = shutil.which("ffprobe")
+    if detected:
+        return detected
+
+    # Common Homebrew locations on macOS.
+    for fallback in ("/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe"):
+        if os.path.exists(fallback):
+            return fallback
+
+    return "ffprobe"
+
+
 def probe_media_file(file_path):
     command = [
-        "ffprobe",
+        resolve_ffprobe_bin(),
         "-v",
         "error",
         "-show_streams",

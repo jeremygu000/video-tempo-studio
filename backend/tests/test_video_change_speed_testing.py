@@ -349,6 +349,10 @@ class VideoChangeSpeedTestingTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("ffprobe", reason.lower())
 
+    def test_resolve_ffprobe_bin_prefers_environment_variable(self):
+        with mock.patch.dict(vcs.os.environ, {"FFPROBE_BIN": "/custom/ffprobe"}, clear=False):
+            self.assertEqual(vcs.resolve_ffprobe_bin(), "/custom/ffprobe")
+
     def test_main_skips_file_when_media_probe_fails(self):
         with mock.patch.object(vcs.os, "chdir"), \
              mock.patch.object(vcs, "get_recent_video_files", return_value=["a.mp4"]), \
