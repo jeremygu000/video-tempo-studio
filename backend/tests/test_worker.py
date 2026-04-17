@@ -63,6 +63,41 @@ class WorkerTests(unittest.TestCase):
             self.assertTrue(any(path.endswith("clip.webm") for path in paths))
             self.assertTrue(any(path.endswith("clip.MTS") for path in paths))
 
+    def test_discover_jobs_requeues_success_job_when_same_file_reappears(self):
+        file_path = self.watch_dir / "piece.mp4"
+        file_path.write_text("first")
+
+        with self._conn() as conn:
+            discovered_first = worker.discover_jobs(conn)
+            self.assertEqual(discovered_first, 1)
+
+            row = conn.execute("SELECT id FROM jobs WHERE file_path = ?", (str(file_path.resolve()),)).fetchone()
+            self.assertIsNotNone(row)
+            job_id = row["id"]
+
+            conn.execute(
+                "UPDATE jobs SET status = 'success', started_at = '2026-01-01T00:00:00+00:00', finished_at = '2026-01-01T00:01:00+00:00' WHERE id = ?",
+                (job_id,),
+            )
+            conn.commit()
+
+            file_path.unlink()
+            discovered_without_file = worker.discover_jobs(conn)
+            self.assertEqual(discovered_without_file, 0)
+
+            file_path.write_text("second")
+            discovered_requeue = worker.discover_jobs(conn)
+            self.assertEqual(discovered_requeue, 1)
+
+            jobs = conn.execute(
+                "SELECT id, status, started_at, finished_at FROM jobs WHERE file_path = ?",
+                (str(file_path.resolve()),),
+            ).fetchall()
+            self.assertEqual(len(jobs), 1)
+            self.assertEqual(jobs[0]["status"], "pending")
+            self.assertIsNone(jobs[0]["started_at"])
+            self.assertIsNone(jobs[0]["finished_at"])
+
     def test_run_worker_cycle_processes_pending_job_success(self):
         file_path = self.watch_dir / "piece.mp4"
         file_path.write_text("x")
@@ -189,6 +224,31 @@ class WorkerTests(unittest.TestCase):
         )
         self.assertIsNone(worker.parse_skip_reason_line("Skip not-ready file: a.mp4"))
 
+    def test_ensure_runs_progress_columns_adds_progress_updated_at(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "legacy.db"
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE runs (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      job_id INTEGER NOT NULL,
+                      status TEXT NOT NULL
+                    )
+                    """
+                )
+                conn.commit()
+
+                worker.ensure_runs_progress_columns(conn)
+
+                columns = {
+                    row[1]: row
+                    for row in conn.execute("PRAGMA table_info(runs)").fetchall()
+                }
+                self.assertIn("progress_pct", columns)
+                self.assertIn("progress_text", columns)
+                self.assertIn("progress_updated_at", columns)
+
     def test_process_one_job_updates_running_progress(self):
         file_path = self.watch_dir / "piece.mp4"
         file_path.write_text("x")
@@ -218,12 +278,13 @@ class WorkerTests(unittest.TestCase):
 
             self.assertIsNotNone(run_id)
             run = conn.execute(
-                "SELECT status, progress_pct, progress_text, log_text FROM runs WHERE id = ?",
+                "SELECT status, progress_pct, progress_text, progress_updated_at, log_text FROM runs WHERE id = ?",
                 (run_id,),
             ).fetchone()
             self.assertEqual(run["status"], "success")
             self.assertEqual(run["progress_pct"], 100)
             self.assertEqual(run["progress_text"], "Completed")
+            self.assertIsNotNone(run["progress_updated_at"])
             self.assertIn("plain log line", run["log_text"])
 
     def test_process_one_job_marks_skipped_when_skip_reason_reported(self):

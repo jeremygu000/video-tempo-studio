@@ -13,6 +13,9 @@ async function ensureProgressColumns() {
   if (!names.has("progress_text")) {
     await prisma.$executeRawUnsafe("ALTER TABLE runs ADD COLUMN progress_text TEXT");
   }
+  if (!names.has("progress_updated_at")) {
+    await prisma.$executeRawUnsafe("ALTER TABLE runs ADD COLUMN progress_updated_at TEXT");
+  }
 }
 
 export async function GET() {
@@ -32,6 +35,7 @@ export async function GET() {
       status: true,
       progress_pct: true,
       progress_text: true,
+      progress_updated_at: true,
       duration_ms: true,
       error_message: true,
       log_file_path: true,

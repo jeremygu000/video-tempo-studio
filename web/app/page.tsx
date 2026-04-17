@@ -31,6 +31,7 @@ export default function HomePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [busyJobId, setBusyJobId] = useState<number | null>(null);
+  const [retryingJobId, setRetryingJobId] = useState<number | null>(null);
 
   async function refresh() {
     const [jobsResp, runsResp] = await Promise.all([fetch("/api/jobs"), fetch("/api/runs")]);
@@ -64,6 +65,16 @@ export default function HomePage() {
       await refresh();
     } finally {
       setBusyJobId(null);
+    }
+  }
+
+  async function onRetryJob(jobId: number) {
+    setRetryingJobId(jobId);
+    try {
+      await fetch(`/api/jobs/${jobId}/retry`, { method: "POST" });
+      await refresh();
+    } finally {
+      setRetryingJobId(null);
     }
   }
 
@@ -143,7 +154,7 @@ export default function HomePage() {
             <em>已启用 {enabledTargets}</em>
           </article>
           <article className="stat-card">
-            <span>待处理文件</span>
+            <span>待处理文件（含运行中）</span>
             <strong>{pendingFiles}</strong>
             <em>跨全部目录</em>
           </article>
@@ -168,7 +179,7 @@ export default function HomePage() {
                   <th>ID</th>
                   <th>目录</th>
                   <th>状态</th>
-                  <th>待处理</th>
+                  <th>待处理（含运行中）</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -217,6 +228,7 @@ export default function HomePage() {
                 <th>耗时</th>
                 <th>错误</th>
                 <th>日志文件</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -237,6 +249,13 @@ export default function HomePage() {
                   <td>{formatDuration(run.duration_ms)}</td>
                   <td>{run.error_message ?? "无"}</td>
                   <td>{run.log_file_path ?? "无"}</td>
+                  <td className="actions">
+                    {run.status === "failed" && (
+                      <button disabled={retryingJobId === run.job_id} onClick={() => void onRetryJob(run.job_id)}>
+                        {retryingJobId === run.job_id ? "重试中..." : "重试"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

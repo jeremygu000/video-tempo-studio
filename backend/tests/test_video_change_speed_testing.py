@@ -185,6 +185,30 @@ class VideoChangeSpeedTestingTests(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
 
+    def test_processvideo_removes_existing_output_folder_before_regeneration(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            try:
+                Path("input.mp4").write_text("x")
+                existing_output_dir = Path(tmpdir) / "input_BianSu"
+                existing_output_dir.mkdir(parents=True, exist_ok=True)
+                (existing_output_dir / "old_result.mp4").write_text("old")
+
+                with mock.patch.object(vcs, "directory", "./"), \
+                     mock.patch.object(vcs, "separate_video_audio"), \
+                     mock.patch.object(vcs, "combine_video_audio"), \
+                     mock.patch.object(vcs.os.path, "exists", return_value=False), \
+                     mock.patch.object(vcs.shutil, "rmtree", wraps=vcs.shutil.rmtree) as rmtree_mock, \
+                     mock.patch.object(vcs.shutil, "move"):
+                    vcs.processvideo("input.mp4")
+
+                rmtree_mock.assert_called_once()
+                removed_path = str(rmtree_mock.call_args.args[0])
+                self.assertTrue(removed_path.endswith("input_BianSu"))
+            finally:
+                os.chdir(old_cwd)
+
     def test_processvideo_cleans_temp_files_when_processing_errors(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             old_cwd = os.getcwd()

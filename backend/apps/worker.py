@@ -65,6 +65,8 @@ def ensure_runs_progress_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE runs ADD COLUMN progress_pct INTEGER NOT NULL DEFAULT 0")
     if "progress_text" not in columns:
         conn.execute("ALTER TABLE runs ADD COLUMN progress_text TEXT")
+    if "progress_updated_at" not in columns:
+        conn.execute("ALTER TABLE runs ADD COLUMN progress_updated_at TEXT")
     conn.commit()
 
 
@@ -110,6 +112,25 @@ def enqueue_jobs_for_target(conn: sqlite3.Connection, target: sqlite3.Row) -> in
         )
         if result.rowcount == 1:
             count += 1
+            continue
+
+        # If a file with the same name is uploaded again after a successful run,
+        # requeue the existing row instead of creating a duplicate job row.
+        requeue = conn.execute(
+            """
+            UPDATE jobs
+               SET status = 'pending',
+                   started_at = NULL,
+                   finished_at = NULL,
+                   created_at = datetime('now')
+             WHERE target_id = ?
+               AND file_path = ?
+               AND status = 'success'
+            """,
+            (target["id"], file_path),
+        )
+        if requeue.rowcount == 1:
+            count += 1
     conn.commit()
     return count
 
@@ -151,9 +172,10 @@ def claim_pending_job(conn: sqlite3.Connection, job_id: int, started_at: str) ->
 
 
 def update_run_progress(conn: sqlite3.Connection, run_id: int, pct: int, text: str) -> None:
+    progress_updated_at = utc_now_iso()
     conn.execute(
-        "UPDATE runs SET progress_pct = ?, progress_text = ? WHERE id = ?",
-        (pct, text, run_id),
+        "UPDATE runs SET progress_pct = ?, progress_text = ?, progress_updated_at = ? WHERE id = ?",
+        (pct, text, progress_updated_at, run_id),
     )
     conn.commit()
 
@@ -172,8 +194,11 @@ def process_one_job(
         return None
 
     run_id = conn.execute(
-        "INSERT INTO runs(job_id, status, started_at, progress_pct, progress_text) VALUES(?, 'running', ?, 0, ?)",
-        (job["id"], started_at, "Queued"),
+        """
+        INSERT INTO runs(job_id, status, started_at, progress_pct, progress_text, progress_updated_at)
+        VALUES(?, 'running', ?, 0, ?, ?)
+        """,
+        (job["id"], started_at, "Queued", started_at),
     ).lastrowid
     conn.commit()
 
@@ -259,7 +284,8 @@ def process_one_job(
                error_trace = ?,
                log_file_path = ?,
                progress_pct = ?,
-               progress_text = ?
+               progress_text = ?,
+               progress_updated_at = ?
          WHERE id = ?
         """,
         (
@@ -272,6 +298,7 @@ def process_one_job(
             str(log_file_path),
             progress_pct,
             progress_text,
+            finished_at,
             run_id,
         ),
     )

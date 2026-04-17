@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS runs (
   status TEXT NOT NULL CHECK (status IN ('running', 'success', 'failed', 'skipped')),
   progress_pct INTEGER NOT NULL DEFAULT 0,
   progress_text TEXT,
+  progress_updated_at TEXT,
   started_at TEXT,
   finished_at TEXT,
   duration_ms INTEGER,

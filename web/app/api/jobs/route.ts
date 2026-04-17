@@ -11,7 +11,7 @@ export async function GET() {
       : await prisma.jobs.findMany({
           where: {
             target_id: { in: targetIds },
-            status: "pending",
+            status: { in: ["pending", "running"] },
           },
           orderBy: { id: "desc" },
           select: {

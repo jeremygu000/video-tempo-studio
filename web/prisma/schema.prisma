@@ -22,6 +22,7 @@ model runs {
   status        String
   progress_pct  Int     @default(0)
   progress_text String?
+  progress_updated_at String?
   started_at    String?
   finished_at   String?
   duration_ms   Int?

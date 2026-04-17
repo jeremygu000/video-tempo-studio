@@ -278,6 +278,10 @@ def processvideo(input_file):
 
     # Create subfolder 'BianSu'
     subfolder_name = videofilename_without_extension + '_BianSu'
+    subfolder_path = Path(directory) / subfolder_name
+    if subfolder_path.is_dir():
+        shutil.rmtree(subfolder_path)
+        print(f"Subfolder '{subfolder_name}' already exists and was reset.")
     create_subfolder(directory, subfolder_name)
     emit_progress(2, f"Preparing {input_filename}")
 
