@@ -128,6 +128,8 @@ npm run test:all
 - 已安装 ffmpeg/ffprobe
 - 已执行 `npm run db:init`
 
+详细步骤请看：[WINDOWS_SETUP.zh-CN.md](./WINDOWS_SETUP.zh-CN.md)
+
 ## 常见问题
 - `http://localhost:3000` 打不开且 `video-web` 报错找不到 `.next`：
   - 先执行 `npm run build -w web`，再 `npm run web:pm2:restart`
