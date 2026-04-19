@@ -259,3 +259,64 @@ npm run web:pm2:start
 npx pm2 start py --name video-worker -- -3 backend\apps\worker.py --watch --poll-interval 30
 npx pm2 status
 ```
+
+## 11. 电脑重启后如何自动继续运行
+
+要做到“重启后继续跑”，建议两层保障：
+
+1. 开机自动启动服务（PM2）
+2. 启动时恢复异常中断的 `running` 任务
+
+### 11.1 开机自动启动（任务计划程序）
+
+先确保你平时是用 PM2 运行：
+
+```powershell
+cd D:\scripts\video-tempo-studio
+npm run pm2:start:all
+```
+
+然后创建一个 PowerShell 启动脚本，例如：
+
+`D:\scripts\video-tempo-studio\scripts\start-services.ps1`
+
+内容：
+
+```powershell
+Set-Location "D:\scripts\video-tempo-studio"
+npm run pm2:start:all
+```
+
+在“任务计划程序”中创建任务：
+
+1. 触发器：`启动时`
+2. 操作：`启动程序`
+3. 程序/脚本：`powershell.exe`
+4. 参数：`-ExecutionPolicy Bypass -File "D:\scripts\video-tempo-studio\scripts\start-services.ps1"`
+5. 勾选“使用最高权限运行”（建议）
+
+这样电脑每次开机都会自动拉起前后端服务。
+
+### 11.2 恢复重启前中断的任务（避免卡在 running）
+
+如果断电/重启时有任务正在跑，数据库可能残留 `running` 记录。建议开机后先检查：
+
+```powershell
+sqlite3 .\backend\db\biansu.db "SELECT id,status,started_at,finished_at FROM jobs WHERE status='running';"
+sqlite3 .\backend\db\biansu.db "SELECT id,job_id,status,started_at,finished_at FROM runs WHERE status='running';"
+```
+
+如果确认这些是“中断残留”而非真实运行中的任务，可以重置为待处理：
+
+```powershell
+sqlite3 .\backend\db\biansu.db "UPDATE jobs SET status='pending', started_at=NULL, finished_at=NULL WHERE status='running';"
+sqlite3 .\backend\db\biansu.db "UPDATE runs SET status='failed', finished_at=datetime('now'), error_message='Recovered after host reboot', progress_text='Failed' WHERE status='running';"
+```
+
+然后重启 worker：
+
+```powershell
+npx pm2 restart video-worker
+```
+
+后续 worker 会重新处理这些 `pending` 任务。
